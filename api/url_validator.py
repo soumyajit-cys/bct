@@ -12,18 +12,28 @@ Production behaviour (default):
   - Blocks IPv6 private / loopback / link-local
   - Blocks cloud metadata endpoints (169.254.169.254, metadata.google.internal)
   - Validates redirect targets before following
+  - DNS-pinning: hostname is resolved ONCE at validation time; the caller
+    receives the resolved IP and must use it for the actual request so that a
+    second DNS response (DNS rebinding) cannot redirect traffic to an internal
+    address.
 
 Development / authorized-testing override:
   Set the environment variable:  ALLOW_INTERNAL_TARGETS=true
   This disables SSRF checks so you can scan localhost, 192.168.x.x, etc.
 
-Usage:
-  from api.url_validator import validate_url_for_request
+Usage (preferred – DNS-pinning safe):
+  from api.url_validator import resolve_and_validate_url
 
-  allowed, reason = validate_url_for_request(url)
+  allowed, reason, resolved_ip = resolve_and_validate_url(url)
   if not allowed:
       logger.warning("SSRF blocked: %s — %s", url, reason)
       return []   # skip this request
+  # pass resolved_ip to the transport layer (see scanner.py DNSPinningAdapter)
+
+Legacy usage (no DNS-pinning, kept for compatibility):
+  from api.url_validator import validate_url_for_request
+
+  allowed, reason = validate_url_for_request(url)
 """
 
 from __future__ import annotations
@@ -96,67 +106,113 @@ def _ip_is_internal(ip_str: str) -> bool:
         return False
 
 
-def _hostname_is_internal(hostname: str) -> bool:
+def _resolve_hostname(hostname: str) -> list[str]:
     """
-    Return True if *hostname* is blocked or resolves to a private address.
-    DNS resolution is performed; if it fails the host is treated as external
-    (the outbound request will simply fail with a connection error).
+    Resolve *hostname* to a list of IP address strings.
+    Returns an empty list if resolution fails.
     """
-    if hostname.lower() in _BLOCKED_HOSTNAMES:
-        return True
-
     try:
         addr_infos = socket.getaddrinfo(hostname, None)
-        for _family, _type, _proto, _canonname, sockaddr in addr_infos:
-            ip = sockaddr[0]
-            if _ip_is_internal(ip):
-                return True
+        return [sockaddr[0] for (_family, _type, _proto, _canonname, sockaddr) in addr_infos]
     except OSError:
-        # DNS lookup failed; let the request proceed and fail naturally
-        pass
+        return []
 
-    return False
+
+def _hostname_is_internal(hostname: str) -> tuple[bool, list[str]]:
+    """
+    Return (is_internal, resolved_ips).
+
+    is_internal=True  → hostname is blocked or resolves to a private address.
+    resolved_ips      → list of IPs obtained during this single DNS call
+                        (empty if resolution failed or host is in the static
+                        block-list without needing a lookup).
+
+    Callers MUST pin their HTTP connections to one of these IPs so that a
+    subsequent DNS rebind cannot redirect traffic to an internal address.
+    """
+    if hostname.lower() in _BLOCKED_HOSTNAMES:
+        return True, []
+
+    resolved_ips = _resolve_hostname(hostname)
+
+    if not resolved_ips:
+        # DNS lookup failed; let the request proceed and fail naturally
+        return False, []
+
+    for ip in resolved_ips:
+        if _ip_is_internal(ip):
+            return True, resolved_ips
+
+    return False, resolved_ips
 
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
-def validate_url_for_request(url: str) -> tuple[bool, str]:
+def resolve_and_validate_url(url: str) -> tuple[bool, str, str | None]:
     """
-    Validate *url* before making an outbound HTTP request.
+    Validate *url* before making an outbound HTTP request **and** return the
+    pre-resolved IP address so the caller can pin the connection.
+
+    DNS-pinning rationale
+    ---------------------
+    Calling ``socket.getaddrinfo`` at validation time and then letting
+    ``requests`` do its own resolution later opens a DNS-rebinding window:
+    the attacker's TTL expires between the two calls and the second DNS
+    response points to an internal address.  By resolving once here and
+    returning the IP, callers can bypass DNS entirely for the real request
+    (see ``DNSPinningAdapter`` in scanner.py), closing that window.
 
     Returns:
-        (allowed: bool, reason: str)
+        (allowed: bool, reason: str, resolved_ip: str | None)
 
-        allowed=True  → safe to proceed (reason is empty string).
-        allowed=False → blocked (reason describes why).
+        allowed=True  → safe to proceed; resolved_ip is the first non-internal
+                        IP string (IPv4 or IPv6) to connect to.
+        allowed=False → blocked; reason describes why; resolved_ip is None.
 
-    When ALLOW_INTERNAL_TARGETS=true every URL is allowed and a debug log
-    entry is emitted so operators know the override is active.
+    When ALLOW_INTERNAL_TARGETS=true every URL is allowed, resolved_ip is None
+    (no pinning – useful only in dev/test), and a debug log entry is emitted.
     """
     if ALLOW_INTERNAL_TARGETS:
         logger.debug(
             "SSRF check bypassed (ALLOW_INTERNAL_TARGETS=true) for %s", url
         )
-        return True, ""
+        return True, "", None
 
     try:
         parsed = urlparse(url)
     except Exception as exc:
         reason = f"URL parse error: {exc}"
         logger.warning("SSRF validator rejected unparseable URL %r — %s", url, reason)
-        return False, reason
+        return False, reason, None
 
     hostname = parsed.hostname
     if not hostname:
         reason = "URL has no hostname"
         logger.warning("SSRF validator rejected URL with no hostname: %r", url)
-        return False, reason
+        return False, reason, None
 
-    if _hostname_is_internal(hostname):
+    is_internal, resolved_ips = _hostname_is_internal(hostname)
+    if is_internal:
         reason = f"SSRF blocked: {hostname} resolves to an internal address"
         logger.warning("SSRF block | url=%s | reason=%s", url, reason)
-        return False, reason
+        return False, reason, None
 
-    return True, ""
+    # Return the first resolved IP for the caller to pin to.
+    resolved_ip = resolved_ips[0] if resolved_ips else None
+    return True, "", resolved_ip
+
+
+def validate_url_for_request(url: str) -> tuple[bool, str]:
+    """
+    Legacy two-value wrapper around ``resolve_and_validate_url``.
+
+    Prefer ``resolve_and_validate_url`` for new call-sites so you get the
+    pre-resolved IP and can use DNS pinning.
+
+    Returns:
+        (allowed: bool, reason: str)
+    """
+    allowed, reason, _ip = resolve_and_validate_url(url)
+    return allowed, reason

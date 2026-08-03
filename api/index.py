@@ -145,6 +145,9 @@ def analyze_url():
         if not url:
             return jsonify({"error": "URL is required"}), 400
 
+        if len(url) > 2048:
+            return jsonify({"error": "URL too long"}), 400
+
         logger.info("Scan request | url=%s", url)
         start_time = time.time()
         findings   = scan_website(url)
