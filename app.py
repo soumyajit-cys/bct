@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from flask import Flask, render_template, request, jsonify, send_from_directory
@@ -119,12 +120,20 @@ def analyze_url():
         risk_score, score_breakdown = calculate_risk_score(findings)
         verdict    = verdict_for_score(risk_score)
         is_risky   = risk_score >= 25
-        analysis   = generate_analysis(findings, risk_score)
-        processed  = linkify_findings(findings)
         scan_time  = f"{elapsed:.2f}s"
 
-        # LLM plain-English explanation (non-blocking; falls back gracefully)
-        ai_report  = generate_explanation(url, risk_score, verdict, findings, scan_time)
+        # Submit the LLM call to a background thread immediately so it runs
+        # concurrently with the remaining (fast) scoring work below.
+        with ThreadPoolExecutor(max_workers=1) as llm_pool:
+            llm_future = llm_pool.submit(
+                generate_explanation, url, risk_score, verdict, findings, scan_time
+            )
+
+            analysis  = generate_analysis(findings, risk_score)
+            processed = linkify_findings(findings)
+
+            # Block only now — LLM has had the full scoring duration to progress.
+            ai_report = llm_future.result()
 
         logger.info(
             "Scan complete | url=%s | score=%d | verdict=%s | elapsed=%.2fs | llm_fallback=%s | fallback_reason=%s",
