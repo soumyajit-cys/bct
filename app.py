@@ -145,16 +145,24 @@ def analyze_url():
             }
         )
 
-    except Exception:
+    except Exception as exc:
+        # Log the full traceback so operators can investigate the real cause.
         logger.exception("Unhandled error during scan of %s", url or "unknown")
+        # IMPORTANT: Do NOT return is_risky=True or risk_score=100 here.
+        # A backend error (misconfiguration, network issue, bad import …) must
+        # never be surfaced to the user as a "Critical Risk" verdict — that
+        # would be a false positive caused by our own infrastructure, not by
+        # the scanned URL.  Return a neutral, clearly-labelled error response
+        # so the client can distinguish a scan failure from a genuine verdict.
         return (
             jsonify(
                 {
                     "error":      "Analysis failed",
-                    "is_risky":   True,
-                    "risk_score": 100,
-                    "verdict":    "Scan Failed",
-                    "message":    "An error occurred during scanning",
+                    "scan_error": True,          # explicit machine-readable flag
+                    "is_risky":   False,         # neutral — we don't know
+                    "risk_score": 0,             # neutral — we don't know
+                    "verdict":    "Scan Error",
+                    "message":    "An internal error occurred; the URL could not be evaluated. Please try again.",
                 }
             ),
             500,
