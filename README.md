@@ -1,6 +1,6 @@
 # NexusScan
 
-A Flask-based web security scanner that analyses any URL for exposed files, security misconfigurations, and known data breaches — then explains the results in plain English using an AI report layer.
+A Flask-based web security scanner that analyses any URL for exposed files, security misconfigurations, and phishing signals — then explains the results in plain English using an AI report layer.
 
 **Live Application → [nexusscan.vercel.app](https://nexusscan.vercel.app/)**
 
@@ -14,7 +14,6 @@ Paste or scan any URL and NexusScan runs a full security audit in seconds:
 - Runs URL phishing heuristics (typosquatting, URL shorteners, suspicious TLDs, raw-IP hosts, keyword traps)
 - Analyses security headers (HSTS, CSP, X-Frame-Options, X-Content-Type-Options)
 - Detects directory listing, TRACE method exposure, and missing HTTPS redirects
-- Looks up the domain against the Have I Been Pwned breach database
 - Generates an AI-written plain-English report so non-technical users understand the results
 - Accepts URLs via typed input, live camera QR scan, or uploaded QR image
 
@@ -66,13 +65,12 @@ Create a `.env` file in the project root (loaded automatically by `app.py` and `
 
 | Variable | Purpose |
 |---|---|
-| `HIBP_API_KEY` | Enables the data breach lookup (free key from [haveibeenpwned.com](https://haveibeenpwned.com/)) |
 | `LLM_PROVIDER` | AI report provider — `groq` (default), `openai`, or `gemini` |
 | `LLM_API_KEY` | API key for the chosen LLM provider |
 | `LLM_MODEL` | Optional model override for the provider |
 | `ALLOWED_ORIGIN` | CORS origin for `/analyze` (defaults to `*`) |
 
-Without keys, the breach lookup and AI report gracefully fall back to deterministic results — the scan still works.
+Without an LLM key, the AI report gracefully falls back to deterministic results — the scan still works.
 
 ---
 
@@ -88,7 +86,6 @@ Performs the following checks on every scan:
 | HTTPS enforcement | Sites that don't redirect HTTP → HTTPS, or have no HTTPS at all |
 | Directory listing | Open index pages that expose file structure |
 | TRACE method | Servers with TRACE enabled (Cross-Site Tracing vulnerability) |
-| Data breach lookup | Domain checked against Have I Been Pwned v3 API |
 
 ### Risk Score & Verdict
 Every finding is weighted by severity and summed into a 0–100 risk score:
@@ -144,7 +141,6 @@ Previous scans are stored locally in the browser (`localStorage`, max 20 entries
 | Fonts | Inter · JetBrains Mono (Google Fonts) |
 | Deployment | Vercel (serverless via `api/index.py`) |
 | Rate Limiting | In-process memory (default) or Redis |
-| Breach Lookup | Have I Been Pwned API v3 |
 | AI Reports | Groq / OpenAI / Google Gemini (configurable) |
 
 ---
