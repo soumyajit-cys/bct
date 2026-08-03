@@ -158,7 +158,7 @@ Write the JSON explanation now.\
 def _severity_of(finding: str) -> str:
     """Map a finding string to one of: critical | warning | info."""
     if any(kw in finding for kw in (
-        "Exposed sensitive file", "Domain breached", "TRACE method",
+        "Exposed sensitive file", "TRACE method",
         "raw IPv4", "raw IPv6", "URL contains an '@'",
         "resembles a known brand", "URL shortener", "punycode",
     )):
@@ -576,8 +576,6 @@ def generate_fallback_explanation(payload: dict, reason: str = "unknown") -> dic
 
     if "Exposed" in f_texts:
         actions.append("The site has exposed sensitive files — contact the site owner if you manage it.")
-    if "breach" in f_texts.lower():
-        actions.append("This domain appeared in data breaches — change any credentials linked to it.")
     if "Missing" in f_texts:
         actions.append("The site is missing security headers — configure them in your web server settings.")
     if "HTTPS" in f_texts or "HTTP does not" in f_texts:
