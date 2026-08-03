@@ -71,6 +71,10 @@ def _init_redis() -> None:
     global _redis_client, _redis_ok
     redis_url = os.environ.get("REDIS_URL", "").strip()
     if not redis_url:
+        logger.warning(
+            "REDIS_URL not configured — rate limiting is per-process only. "
+            "Set REDIS_URL for cross-process limiting."
+        )
         return
     try:
         import redis  # type: ignore[import-not-found]

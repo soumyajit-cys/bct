@@ -33,9 +33,9 @@ except ImportError:
     from phishing_heuristics import analyze_phishing_heuristics
 
 try:
-    from .url_validator import validate_url_for_request
+    from .url_validator import validate_url_for_request, resolve_and_validate_url
 except ImportError:
-    from url_validator import validate_url_for_request
+    from url_validator import validate_url_for_request, resolve_and_validate_url
 
 logger = logging.getLogger("nexusscan.scanner")
 
@@ -57,6 +57,51 @@ SENSITIVE_PATHS = [
 ]
 
 # ---------------------------------------------------------------------------
+# DNS-pinning transport adapter
+# ---------------------------------------------------------------------------
+
+class _DNSPinningHTTPSAdapter(requests.adapters.HTTPAdapter):
+    """
+    A ``requests`` transport adapter that bypasses DNS at connection time.
+
+    Motivation
+    ----------
+    ``url_validator.resolve_and_validate_url`` resolves the hostname *once* and
+    verifies the resulting IP is not internal.  If we then let ``requests`` /
+    urllib3 do their own DNS lookup for the actual TCP connection, an attacker
+    with a very short TTL can serve a *different* A-record pointing to
+    127.0.0.1 (DNS rebinding).  This adapter closes that window: it replaces
+    the hostname in the URL with the already-validated IP *before* urllib3 ever
+    talks to a resolver, and puts the original hostname back in the ``Host``
+    header so TLS SNI and virtual hosting still work correctly.
+    """
+
+    def __init__(self, resolved_ip: str, hostname: str, **kwargs):
+        self._resolved_ip = resolved_ip
+        self._hostname    = hostname
+        super().__init__(**kwargs)
+
+    def send(self, request, **kwargs):  # type: ignore[override]
+        from urllib.parse import urlparse, urlunparse
+
+        parsed = urlparse(request.url)
+        # Substitute the hostname with the pinned IP.  Preserve the port if
+        # one was explicitly specified in the original URL.
+        port       = parsed.port
+        netloc_ip  = f"[{self._resolved_ip}]" if ":" in self._resolved_ip else self._resolved_ip
+        if port:
+            netloc_ip = f"{netloc_ip}:{port}"
+
+        pinned_url = urlunparse(parsed._replace(netloc=netloc_ip))
+        request.url = pinned_url
+
+        # Restore the original Host header so TLS SNI / vhosts work.
+        request.headers["Host"] = self._hostname
+
+        return super().send(request, **kwargs)
+
+
+# ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
 
@@ -66,15 +111,34 @@ def _make_session() -> requests.Session:
     return s
 
 
-def _ssrf_guard(url: str) -> bool:
+def _make_pinned_session(url: str, resolved_ip: str) -> requests.Session:
     """
-    Return True if the request is allowed.
-    Logs and returns False if SSRF-blocked.
+    Build a ``requests.Session`` that pins all connections for *url* to
+    *resolved_ip*, bypassing any further DNS lookups (DNS-rebinding defence).
     """
-    allowed, reason = validate_url_for_request(url)
+    from urllib.parse import urlparse
+    parsed   = urlparse(url)
+    hostname = parsed.hostname or ""
+    adapter  = _DNSPinningHTTPSAdapter(resolved_ip=resolved_ip, hostname=hostname)
+    s = requests.Session()
+    s.headers["User-Agent"] = USER_AGENT
+    s.mount("https://", adapter)
+    s.mount("http://",  adapter)
+    return s
+
+
+def _ssrf_guard(url: str) -> tuple[bool, str | None]:
+    """
+    Return (allowed, resolved_ip).
+
+    allowed=True  → safe to proceed; resolved_ip is the IP to pin to (may be
+                    None when ALLOW_INTERNAL_TARGETS=true).
+    allowed=False → blocked; resolved_ip is None.
+    """
+    allowed, reason, resolved_ip = resolve_and_validate_url(url)
     if not allowed:
         logger.warning("Outbound request blocked | %s", reason)
-    return allowed
+    return allowed, resolved_ip
 
 
 def normalize_url(url: str) -> str:
@@ -91,20 +155,35 @@ def normalize_url(url: str) -> str:
 
 def check_sensitive_files(target_url: str) -> list[str]:
     findings: list[str] = []
-    session = _make_session()
     for path in SENSITIVE_PATHS:
         full_url = target_url + path
-        if not _ssrf_guard(full_url):
+        allowed, resolved_ip = _ssrf_guard(full_url)
+        if not allowed:
             continue
+        session = _make_pinned_session(full_url, resolved_ip) if resolved_ip else _make_session()
         try:
             resp = session.get(
                 full_url,
                 timeout=REQUEST_TIMEOUT,
                 allow_redirects=False,
             )
-            if resp.status_code == 200:
+            # 200/206 with a non-empty body → file genuinely served.
+            # Body-length guard filters empty catch-all 200 responses from
+            # CDNs that return 200 for every path with a JS redirect in the
+            # body (those still have content, but we at least require > 0).
+            if resp.status_code in (200, 206) and len(resp.content) > 0:
                 findings.append(f"Exposed sensitive file: {full_url}")
                 logger.info("Sensitive file exposed: %s", full_url)
+            # 301/302 redirecting to a login/auth page is a common server
+            # pattern that hides the file behind authentication rather than
+            # returning 403 — the path still exists and is worth flagging.
+            elif resp.status_code in (301, 302):
+                location = resp.headers.get("Location", "").lower()
+                if any(kw in location for kw in ("login", "auth", "signin", "sign-in")):
+                    findings.append(
+                        f"Sensitive file redirects to auth page (possible exposure): {full_url}"
+                    )
+                    logger.info("Sensitive file behind auth redirect: %s -> %s", full_url, location)
             if REQUEST_DELAY > 0 and resp.status_code in (403, 429):
                 time.sleep(REQUEST_DELAY)
         except requests.RequestException as exc:
@@ -115,10 +194,11 @@ def check_sensitive_files(target_url: str) -> list[str]:
 
 def check_common_misconfigurations(target_url: str) -> list[str]:
     findings: list[str] = []
-    if not _ssrf_guard(target_url):
+    allowed, resolved_ip = _ssrf_guard(target_url)
+    if not allowed:
         return findings
 
-    session = _make_session()
+    session = _make_pinned_session(target_url, resolved_ip) if resolved_ip else _make_session()
     try:
         root_resp = session.get(target_url, timeout=REQUEST_TIMEOUT)
         if "Index of /" in root_resp.text:
@@ -159,26 +239,28 @@ def check_https_redirect(target_url: str) -> list[str]:
 
     https_url = target_url.replace("http://", "https://", 1)
 
-    if not _ssrf_guard(https_url):
+    allowed_https, resolved_ip_https = _ssrf_guard(https_url)
+    if not allowed_https:
         return findings
 
     try:
-        requests.get(
+        session_https = _make_pinned_session(https_url, resolved_ip_https) if resolved_ip_https else _make_session()
+        session_https.get(
             https_url,
-            headers={"User-Agent": USER_AGENT},
             timeout=REQUEST_TIMEOUT,
         )
     except Exception:
         findings.append("HTTPS version inaccessible")
         return findings
 
-    if not _ssrf_guard(target_url):
+    allowed_http, resolved_ip_http = _ssrf_guard(target_url)
+    if not allowed_http:
         return findings
 
     try:
-        resp = requests.get(
+        session_http = _make_pinned_session(target_url, resolved_ip_http) if resolved_ip_http else _make_session()
+        resp = session_http.get(
             target_url,
-            headers={"User-Agent": USER_AGENT},
             allow_redirects=False,
             timeout=REQUEST_TIMEOUT,
         )
