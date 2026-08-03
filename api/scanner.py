@@ -22,6 +22,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse
 
 import requests
@@ -197,15 +198,25 @@ def check_https_redirect(target_url: str) -> list[str]:
 # ---------------------------------------------------------------------------
 
 def scan_website(url: str) -> list[str]:
-    """Run all rule-based checks."""
+    """Run all rule-based checks concurrently for faster scan times."""
     normalized_url = normalize_url(url)
     logger.info("Scan started | url=%s | normalized=%s", url, normalized_url)
 
+    checks = [
+        lambda: analyze_phishing_heuristics(url),
+        lambda: check_sensitive_files(normalized_url),
+        lambda: check_common_misconfigurations(normalized_url),
+        lambda: check_https_redirect(normalized_url),
+    ]
+
     results: list[str] = []
-    results.extend(analyze_phishing_heuristics(url))
-    results.extend(check_sensitive_files(normalized_url))
-    results.extend(check_common_misconfigurations(normalized_url))
-    results.extend(check_https_redirect(normalized_url))
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = [pool.submit(c) for c in checks]
+        for future in as_completed(futures):
+            try:
+                results.extend(future.result())
+            except Exception as exc:
+                logger.warning("Security check failed: %s", exc)
 
     logger.info(
         "Scan finished | url=%s | findings=%d",
