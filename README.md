@@ -189,22 +189,3 @@ NEXUSSCAN/
 Returns the risk score, verdict, score breakdown, technical findings, and the AI report (see `app.py` for the full response shape).
 
 ---
-
-## Contributors
-
-| Name | Role |
-|---|---|
-| **Promita Chakraborty** | Project Guide |
-| **Soumyajit Dutta** | Developed `scanner.py` · Built the full rule-based scanning engine · Assisted with QR scanning |
-| **Anubhab Das** | AI report layer (`llm_explainer.py`) · QR scanning module · Frontend · Integration & merging · Deployment |
-
----
-
-## License
-
-Copyright © 2026 Anubhab Das, Soumyajit Dutta & Promita Chakraborty. All rights reserved.
-
-This source code is provided **for viewing purposes only.**
-No permission is granted to use, copy, modify, merge, publish, distribute, sublicense, sell, or run this software locally or on any infrastructure.
-
-Unauthorized use is strictly prohibited. To use NexusScan, please visit the deployed application at [nexusscan.vercel.app](https://nexusscan.vercel.app/).

@@ -12,7 +12,6 @@ Checks:
   - Security header analysis
   - HTTPS redirect configuration
   - Directory listing detection
-  - Breached domain verification (HIBP v3)
   - HTTP method analysis
 
 SSRF protection is applied to every outbound request via url_validator.
@@ -20,7 +19,6 @@ SSRF protection is applied to every outbound request via url_validator.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import time
@@ -50,7 +48,6 @@ USER_AGENT = (
     "Chrome/91.0.4472.124 Safari/537.36"
 )
 REQUEST_TIMEOUT  = 10  # seconds
-BREACHES_TIMEOUT = 15  # HIBP can be slow
 REQUEST_DELAY    = 1   # seconds; only applied on 403/429 responses
 
 SENSITIVE_PATHS = [
@@ -194,75 +191,6 @@ def check_https_redirect(target_url: str) -> list[str]:
     return findings
 
 
-def check_breached_credentials(target_url: str) -> list[str]:
-    """
-    Check the domain against Have I Been Pwned v3 breach API.
-
-    Requires:  HIBP_API_KEY environment variable (free key from haveibeenpwned.com).
-    If the key is absent, returns an informational finding instead of silently
-    skipping.
-    """
-    domain  = urlparse(target_url).netloc
-    api_key = os.environ.get("HIBP_API_KEY", "").strip()
-
-    if not api_key:
-        logger.info("HIBP_API_KEY not set — breach check skipped for %s", domain)
-        return ["HIBP breach check skipped (HIBP_API_KEY not configured)"]
-
-    # Sanitise the domain to prevent URL injection into the HIBP query string.
-    # Only allow hostname characters: alphanumeric, dot, hyphen.
-    import re as _re
-    safe_domain = _re.sub(r"[^a-zA-Z0-9.\x2d]", "", domain)
-    if not safe_domain:
-        logger.warning("HIBP check skipped — no safe domain extracted from %s", target_url)
-        return ["HIBP breach check skipped (invalid domain)"]
-    api_url = f"https://haveibeenpwned.com/api/v3/breaches?domain={safe_domain}"
-
-    if not _ssrf_guard(api_url):
-        return []
-
-    headers = {
-        "User-Agent":   USER_AGENT,
-        "hibp-api-key": api_key,
-    }
-
-    try:
-        resp = requests.get(api_url, headers=headers, timeout=BREACHES_TIMEOUT)
-
-        if resp.status_code == 401:
-            logger.error("HIBP API returned 401 — check HIBP_API_KEY value")
-            return ["HIBP breach check failed (invalid API key)"]
-
-        if resp.status_code == 429:
-            logger.warning("HIBP API rate-limited for domain %s", domain)
-            return ["HIBP breach check skipped (rate limited — retry later)"]
-
-        if resp.status_code == 404:
-            # HIBP returns 404 when no breaches are found
-            return []
-
-        if resp.status_code != 200:
-            logger.warning("HIBP API unexpected status %d for %s", resp.status_code, domain)
-            return [f"HIBP breach check failed (HTTP {resp.status_code})"]
-
-        breaches = json.loads(resp.text)
-        if breaches:
-            names = [b["Name"] for b in breaches]
-            logger.info("HIBP breaches found for %s: %s", domain, names)
-            return [f"Domain breached in: {', '.join(names)}"]
-
-    except json.JSONDecodeError as exc:
-        logger.error("HIBP response parse error for %s: %s", domain, exc)
-        return ["HIBP breach check failed (invalid response)"]
-    except requests.RequestException as exc:
-        logger.error("HIBP network error for %s: %s", domain, exc)
-        return ["HIBP breach check failed (network error)"]
-    except Exception as exc:
-        logger.error("HIBP unexpected error for %s: %s", domain, exc)
-        return ["HIBP breach check failed (unexpected error)"]
-
-    return []
-
 
 # ---------------------------------------------------------------------------
 # Orchestrator
@@ -278,7 +206,6 @@ def scan_website(url: str) -> list[str]:
     results.extend(check_sensitive_files(normalized_url))
     results.extend(check_common_misconfigurations(normalized_url))
     results.extend(check_https_redirect(normalized_url))
-    results.extend(check_breached_credentials(normalized_url))
 
     logger.info(
         "Scan finished | url=%s | findings=%d",

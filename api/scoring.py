@@ -20,14 +20,13 @@ import re
 # ---------------------------------------------------------------------------
 
 # Scoring weights — recalibrated so informational/administrative findings
-# (missing optional headers, HIBP API not configured) do not inflate scores.
+# (missing optional headers) do not inflate scores.
 #
 # Bands:   0–24 Low | 25–49 Moderate | 50–74 High | 75–100 Critical
 
 _SCORE_RULES: list[tuple[str, int, str]] = [
     # pattern-in-finding          points  label
     ("Exposed sensitive file",    25,     "Exposed sensitive file"),
-    ("Domain breached",           20,     "Known data breach"),
     ("TRACE method enabled",      15,     "TRACE method enabled"),
     ("Directory listing",         12,     "Directory listing exposed"),
     ("HTTP does not redirect",     8,     "Missing HTTPS redirect"),
@@ -58,7 +57,6 @@ _SCORE_RULES: list[tuple[str, int, str]] = [
 
 # Administrative/informational findings that should NOT raise the risk score.
 _ZERO_SCORE_PATTERNS: tuple[str, ...] = (
-    "HIBP",          # key not set, rate-limited, API error — not a site risk
     "No critical vulnerabilities",
 )
 
@@ -143,14 +141,6 @@ def generate_analysis(findings: list[str], risk_score: int) -> str:
         if "Exposed sensitive file" in f:
             critical.append(f)
             recs.append("Remove or restrict access to exposed files immediately")
-        elif "Domain breached" in f:
-            critical.append(f)
-            recs.extend(
-                [
-                    "Reset all credentials and enforce MFA",
-                    "Monitor for unusual login activity",
-                ]
-            )
         elif "Directory listing" in f:
             warnings.append(f)
             recs.append("Disable directory listing in your web server configuration")
