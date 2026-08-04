@@ -59,7 +59,7 @@ Then open **http://localhost:5000** — the landing page is served at `/` and th
 
 ### Optional environment variables
 
-Create a `.env` file in the project root (loaded automatically by `app.py` and `api/index.py`):
+Create a `.env` file in the project root (loaded automatically by `app.py`):
 
 | Variable | Purpose |
 |---|---|
