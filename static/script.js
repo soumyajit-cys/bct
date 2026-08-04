@@ -461,7 +461,7 @@ const Scanner = (() => {
     hide(els.errorContainer);
   }
 
-  return { init, startScan };
+  return { init, startScan, displayResults };
 })();
 
 
