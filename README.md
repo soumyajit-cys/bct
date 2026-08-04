@@ -147,13 +147,10 @@ Previous scans are stored locally in the browser (`localStorage`, max 20 entries
 
 ```
 NEXUSSCAN/
-├── app.py                  # Flask entry-point (local dev)
-├── vercel.json             # Vercel serverless config
-├── .vercelignore           # Files excluded from Vercel deploys
-├── requirements.txt        # Python dependencies (local dev)
+├── app.py                  # Flask entry-point
+├── requirements.txt        # Python dependencies
+├── requirements-optional.txt  # Optional deps (e.g. redis for rate limiting)
 ├── api/
-│   ├── index.py            # Vercel serverless entry-point
-│   ├── requirements.txt    # Python dependencies (Vercel)
 │   ├── scanner.py          # Rule-based security checks + scan orchestrator
 │   ├── scoring.py          # Risk scoring, verdict and analysis logic
 │   ├── llm_explainer.py    # AI plain-English report layer
