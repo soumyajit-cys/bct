@@ -52,8 +52,57 @@ REQUEST_TIMEOUT  = 10  # seconds
 REQUEST_DELAY    = 1   # seconds; only applied on 403/429 responses
 
 SENSITIVE_PATHS = [
-    "/.git/HEAD", "/.env", "/.htaccess", "/backup.zip", "/wp-config.php",
-    "/appsettings.json", "/.DS_Store", "/phpinfo.php",
+    # Version control
+    "/.git/HEAD", "/.git/config", "/.git/COMMIT_EDITMSG", "/.git/index",
+    "/.git/ORIG_HEAD", "/.git/logs/HEAD", "/.git/refs/heads/master",
+    "/.git/packed-refs", "/.git/objects/info/packs", "/.svn/entries",
+    "/.svn/wc.db", "/.hg/store", "/.bzr/README", "/.gitmodules",
+    # Secrets & credentials
+    "/.env", "/.env.production", "/.env.local", "/.env.backup", "/.env.old",
+    "/.aws/credentials", "/.aws/config", "/.config/gcloud/credentials.json",
+    "/.ssh/id_rsa", "/.ssh/id_dsa", "/.ssh/id_ecdsa", "/.ssh/config",
+    "/.ssh/authorized_keys", "/.bash_history", "/.zsh_history",
+    "/.htpasswd", "/.htaccess", "/.npmrc", "/.dockercfg", "/.git-credentials",
+    "/.netrc", "/etc/passwd", "/etc/shadow",
+    # Backups & archives
+    "/backup.zip", "/backup.tar.gz", "/backup.rar", "/backup.bak",
+    "/backup.sql", "/db.sql", "/dump.sql", "/database.sql", "/mysql.sql",
+    "/data.sql", "/db.zip", "/db_backup.zip", "/database.sql.zip",
+    "/dump.tar.gz", "/site.zip", "/www.zip", "/archive.zip", "/old.zip",
+    # Config files & framework manifests
+    "/wp-config.php", "/wp-config.php.bak", "/wp-config.php.save",
+    "/wp-config.bak", "/config.php", "/configuration.php",
+    "/appsettings.json", "/web.config", "/web.config.bak",
+    "/connectionstrings.config", "/config.yml", "/config.yaml",
+    "/config.json", "/database.yml", "/application.properties",
+    "/application.yml", "/settings.py", "/settings.json",
+    "/credentials.xml", "/jdbc.properties", "/hibernate.properties",
+    "/composer.json", "/package.json", "/requirements.txt", "/Gemfile",
+    "/pom.xml", "/build.gradle", "/go.mod", "/Cargo.toml",
+    # Logs, debug & diagnostic files
+    "/phpinfo.php", "/info.php", "/test.php", "/error_log", "/error.log",
+    "/debug.log", "/access_log", "/log.txt", "/trace", "/metrics",
+    "/storage/logs/laravel.log", "/var/log/dpkg.log",
+    # API documentation & metadata
+    "/api/swagger.json", "/swagger.json", "/swagger/index.html",
+    "/swagger-ui.html", "/openapi.json", "/api-docs", "/v2/api-docs",
+    "/v3/api-docs", "/graphql", "/graphiql", "/.well-known/security.txt",
+    "/security.txt", "/crossdomain.xml", "/clientaccesspolicy.xml",
+    # Server status & framework actuator endpoints
+    "/server-status", "/server-info", "/status", "/nginx_status",
+    "/actuator", "/actuator/health", "/actuator/env", "/actuator/heapdump",
+    "/actuator/mappings", "/env", "/heapdump", "/jolokia/", "/solr/",
+    # OS & misc exposure
+    "/.DS_Store", "/Thumbs.db", "/.listing", "/readme.html",
+]
+
+# Management/admin panels — exposed panels expand the attack surface but a
+# login page returning 200 is not itself a data leak, so these carry a lower
+# weight than exposed sensitive files.
+ADMIN_PATHS = [
+    "/wp-admin/", "/wp-login.php", "/administrator/", "/admin/",
+    "/admin/login", "/phpmyadmin/", "/pma/", "/adminer.php", "/dbadmin/",
+    "/myadmin/", "/cpanel/", "/webmail/", "/owa/", "/panel/", "/user/login",
 ]
 
 # ---------------------------------------------------------------------------
@@ -155,11 +204,12 @@ def normalize_url(url: str) -> str:
 
 def check_sensitive_files(target_url: str) -> list[str]:
     findings: list[str] = []
-    for path in SENSITIVE_PATHS:
+
+    def probe(path: str, is_admin: bool) -> tuple[str | None, requests.Response | None, bool]:
         full_url = target_url + path
         allowed, resolved_ip = _ssrf_guard(full_url)
         if not allowed:
-            continue
+            return None, None, is_admin
         session = _make_pinned_session(full_url, resolved_ip) if resolved_ip else _make_session()
         try:
             resp = session.get(
@@ -167,28 +217,46 @@ def check_sensitive_files(target_url: str) -> list[str]:
                 timeout=REQUEST_TIMEOUT,
                 allow_redirects=False,
             )
-            # 200/206 with a non-empty body → file genuinely served.
-            # Body-length guard filters empty catch-all 200 responses from
-            # CDNs that return 200 for every path with a JS redirect in the
-            # body (those still have content, but we at least require > 0).
-            if resp.status_code in (200, 206) and len(resp.content) > 0:
-                findings.append(f"Exposed sensitive file: {full_url}")
-                logger.info("Sensitive file exposed: %s", full_url)
-            # 301/302 redirecting to a login/auth page is a common server
-            # pattern that hides the file behind authentication rather than
-            # returning 403 — the path still exists and is worth flagging.
-            elif resp.status_code in (301, 302):
-                location = resp.headers.get("Location", "").lower()
-                if any(kw in location for kw in ("login", "auth", "signin", "sign-in")):
-                    findings.append(
-                        f"Sensitive file redirects to auth page (possible exposure): {full_url}"
-                    )
-                    logger.info("Sensitive file behind auth redirect: %s -> %s", full_url, location)
-            if REQUEST_DELAY > 0 and resp.status_code in (403, 429):
-                time.sleep(REQUEST_DELAY)
+            return full_url, resp, is_admin
         except requests.RequestException as exc:
             logger.debug("Sensitive-file check failed for %s: %s", full_url, exc)
+            return None, None, is_admin
+
+    # Probe all paths concurrently — the list is now ~100 entries, so a
+    # sequential scan would take minutes.
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futures = [
+            pool.submit(probe, path, path in ADMIN_PATHS)
+            for path in SENSITIVE_PATHS + ADMIN_PATHS
+        ]
+        results = [f.result() for f in futures]
+
+    for full_url, resp, is_admin in results:
+        if full_url is None or resp is None:
             continue
+        # 200/206 with a non-empty body → file genuinely served.
+        # Body-length guard filters empty catch-all 200 responses from
+        # CDNs that return 200 for every path with a JS redirect in the
+        # body (those still have content, but we at least require > 0).
+        if resp.status_code in (200, 206) and len(resp.content) > 0:
+            if is_admin:
+                findings.append(f"Exposed admin panel: {full_url}")
+                logger.info("Admin panel exposed: %s", full_url)
+            else:
+                findings.append(f"Exposed sensitive file: {full_url}")
+                logger.info("Sensitive file exposed: %s", full_url)
+        # 301/302 redirecting to a login/auth page is a common server
+        # pattern that hides the file behind authentication rather than
+        # returning 403 — the path still exists and is worth flagging.
+        elif resp.status_code in (301, 302):
+            location = resp.headers.get("Location", "").lower()
+            if any(kw in location for kw in ("login", "auth", "signin", "sign-in")):
+                findings.append(
+                    f"Sensitive file redirects to auth page (possible exposure): {full_url}"
+                )
+                logger.info("Sensitive file behind auth redirect: %s -> %s", full_url, location)
+        if REQUEST_DELAY > 0 and resp.status_code in (403, 429):
+            time.sleep(REQUEST_DELAY)
     return findings
 
 

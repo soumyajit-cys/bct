@@ -36,6 +36,7 @@ _SCORE_RULES: list[tuple[str, int, str]] = [
     ("Missing X-Content-Type",     3,     "Missing X-Content-Type-Options"),
     ("Missing X-Frame",            3,     "Missing X-Frame-Options"),
     ("credentials",               20,     "Exposed credentials"),
+    ("Exposed admin panel",       10,     "Exposed admin panel"),
     # ---- URL phishing heuristics (ported from the frontend analyzer) ----
     ("Host is a raw IPv4",        20,     "Raw IPv4 address host"),
     ("Host is a raw IPv6",        20,     "Raw IPv6 address host"),
