@@ -812,6 +812,9 @@ const History = (() => {
         const inp = document.getElementById('urlInput');
         if (inp) { inp.value = rec.url; inp.focus(); }
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (rec.data && window.Scanner && typeof window.Scanner.displayResults === 'function') {
+          window.Scanner.displayResults(rec.data, rec.url);
+        }
       });
       list.appendChild(el);
     });
