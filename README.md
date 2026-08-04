@@ -137,7 +137,7 @@ Previous scans are stored locally in the browser (`localStorage`, max 20 entries
 | Charts | Chart.js 4 |
 | QR Scanning | html5-qrcode v2.3.8 |
 | Fonts | Inter · JetBrains Mono (Google Fonts) |
-| Deployment | Vercel (serverless via `api/index.py`) |
+| Deployment | Local Flask server (`python app.py`) |
 | Rate Limiting | In-process memory (default) or Redis |
 | AI Reports | Groq / OpenAI / Google Gemini (configurable) |
 
