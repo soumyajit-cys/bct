@@ -1,5 +1,3 @@
 User-agent: *
 Allow: /
 Disallow: /analyze
-
-Sitemap: https://nexusscan.vercel.app/sitemap.xml
