@@ -100,6 +100,10 @@ def set_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"]  = allowed_origin
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    # ── Security headers ─────────────────────────────────────────────────────
+    response.headers["X-Content-Type-Options"]        = "nosniff"
+    response.headers["X-Frame-Options"]               = "DENY"
+    response.headers["Strict-Transport-Security"]     = "max-age=31536000; includeSubDomains"
     return response
 
 

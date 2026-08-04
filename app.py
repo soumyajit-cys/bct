@@ -72,6 +72,15 @@ logger = logging.getLogger("nexusscan.app")
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 
+@app.after_request
+def set_security_headers(response):
+    # Match the security headers the scanner itself checks for on target sites.
+    response.headers["X-Content-Type-Options"]    = "nosniff"
+    response.headers["X-Frame-Options"]           = "DENY"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
