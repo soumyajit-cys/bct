@@ -13,6 +13,7 @@ const CONFIG = {
   API_ENDPOINT:   '/analyze',
   HISTORY_KEY:     'nexusscan_history',
   HISTORY_MAX:     20,
+  FETCH_TIMEOUT:   60000,
 };
 
 
@@ -104,7 +105,10 @@ const Scanner = (() => {
       History.add({ url, data, ts: Date.now() });
 
     } catch (err) {
-      showError('Scan failed — check the URL and try again.');
+      const message = err && /timed out/i.test(err.message)
+        ? err.message
+        : 'Scan failed — check the URL and try again.';
+      showError(message);
       console.error('[NexusScan]', err);
     } finally {
       scanning = false;
@@ -112,13 +116,25 @@ const Scanner = (() => {
   }
 
   async function fetchScan(url) {
-    const res = await fetch(CONFIG.API_ENDPOINT, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ url }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), CONFIG.FETCH_TIMEOUT);
+    try {
+      const res = await fetch(CONFIG.API_ENDPOINT, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ url }),
+        signal:  controller.signal,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    } catch (err) {
+      if (controller.signal.aborted) {
+        throw new Error('Scan timed out — the backend is taking too long.');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   async function fakeProgress() {
@@ -154,7 +170,7 @@ const Scanner = (() => {
     animateCounter(els.riskScore, 0, score, 1000);
     els.issueCount.textContent = data.technical_details ? data.technical_details.length : 0;
     els.scanTime.textContent   = data.scan_time ?? '—';
-    els.confidence.textContent = getConfidence(score);
+    els.confidence.textContent = getConfidence(data.score_breakdown);
 
     // AI report
     renderAIReport(data.ai_report ?? null);
@@ -461,7 +477,7 @@ const Scanner = (() => {
     hide(els.errorContainer);
   }
 
-  return { init, startScan };
+  return { init, startScan, displayResults };
 })();
 
 
@@ -812,6 +828,9 @@ const History = (() => {
         const inp = document.getElementById('urlInput');
         if (inp) { inp.value = rec.url; inp.focus(); }
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (rec.data && window.Scanner && typeof window.Scanner.displayResults === 'function') {
+          window.Scanner.displayResults(rec.data, rec.url);
+        }
       });
       list.appendChild(el);
     });
@@ -842,6 +861,7 @@ function getTier(score) {
   if (score < 25) return 'safe';
   if (score < 50) return 'low';
   if (score < 75) return 'medium';
+  if (score < 90) return 'high';
   return 'critical';
 }
 
@@ -849,11 +869,13 @@ function getVerdictEmoji(tier) {
   return { safe: '✅', low: '🟡', medium: '🟠', high: '🔴', critical: '💀' }[tier] ?? '❓';
 }
 
-function getConfidence(score) {
-  if (score === 0) return 'High';
-  if (score < 20)  return 'High';
-  if (score < 50)  return 'Medium';
-  return 'High';
+function getConfidence(breakdown) {
+  const items = Array.isArray(breakdown) ? breakdown : [];
+  if (!items.length) return 'High';
+  const substantive = items.filter(it => (it.points ?? 0) >= 8).length;
+  if (substantive >= 2) return 'High';
+  if (substantive === 1) return 'Medium';
+  return 'Low';
 }
 
 function sanitize(str) {

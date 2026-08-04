@@ -53,6 +53,7 @@ from api.scanner      import scan_website
 from api.scoring      import calculate_risk_score, verdict_for_score, generate_analysis, linkify_findings
 from api.rate_limiter import rate_limit_check
 from api.llm_explainer import generate_explanation
+from api.log_utils    import sanitize_url_for_log
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -69,6 +70,15 @@ logger = logging.getLogger("nexusscan.app")
 # ---------------------------------------------------------------------------
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
+
+
+@app.after_request
+def set_security_headers(response):
+    # Match the security headers the scanner itself checks for on target sites.
+    response.headers["X-Content-Type-Options"]    = "nosniff"
+    response.headers["X-Frame-Options"]           = "DENY"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +110,7 @@ def sitemap():
 @app.route("/analyze", methods=["POST"])
 def analyze_url():
     # ── Rate limiting ────────────────────────────────────────────────────────
-    allowed, rate_resp = rate_limit_check()
+    allowed, rate_resp, rate_headers = rate_limit_check()
     if not allowed:
         return rate_resp  # type: ignore[return-value]
 
@@ -112,7 +122,7 @@ def analyze_url():
         if not url:
             return jsonify({"error": "URL is required"}), 400
 
-        logger.info("Scan request | url=%s", url)
+        logger.info("Scan request | url=%s", sanitize_url_for_log(url))
         start_time = time.time()
         findings   = scan_website(url)
         elapsed    = time.time() - start_time
@@ -137,10 +147,10 @@ def analyze_url():
 
         logger.info(
             "Scan complete | url=%s | score=%d | verdict=%s | elapsed=%.2fs | llm_fallback=%s | fallback_reason=%s",
-            url, risk_score, verdict, elapsed, ai_report.get("is_fallback", True), ai_report.get("fallback_reason"),
+            sanitize_url_for_log(url), risk_score, verdict, elapsed, ai_report.get("is_fallback", True), ai_report.get("fallback_reason"),
         )
 
-        return jsonify(
+        resp = jsonify(
             {
                 "is_risky":          is_risky,
                 "risk_score":        risk_score,
@@ -153,10 +163,12 @@ def analyze_url():
                 "ai_report":         ai_report,
             }
         )
+        resp.headers.update(rate_headers)
+        return resp
 
     except Exception as exc:
         # Log the full traceback so operators can investigate the real cause.
-        logger.exception("Unhandled error during scan of %s", url or "unknown")
+        logger.exception("Unhandled error during scan of %s", sanitize_url_for_log(url or None))
         # IMPORTANT: Do NOT return is_risky=True or risk_score=100 here.
         # A backend error (misconfiguration, network issue, bad import …) must
         # never be surfaced to the user as a "Critical Risk" verdict — that

@@ -2,8 +2,6 @@
 
 A Flask-based web security scanner that analyses any URL for exposed files, security misconfigurations, and phishing signals — then explains the results in plain English using an AI report layer.
 
-**Live Application → [nexusscan.vercel.app](https://nexusscan.vercel.app/)**
-
 ---
 
 ## What It Does
@@ -30,9 +28,9 @@ Paste or scan any URL and NexusScan runs a full security audit in seconds:
 
 ---
 
-## How to Use (Deployed)
+## How to Use
 
-1. Visit **[nexusscan.vercel.app](https://nexusscan.vercel.app/)**
+1. Run the app locally (see below) and open **http://localhost:5000**
 2. Click **Start Scanning** (or navigate to `/scan`)
 3. Enter the URL you want to scan, or use the QR scanner to scan a code
 4. Click **Scan**
@@ -61,7 +59,7 @@ Then open **http://localhost:5000** — the landing page is served at `/` and th
 
 ### Optional environment variables
 
-Create a `.env` file in the project root (loaded automatically by `app.py` and `api/index.py`):
+Create a `.env` file in the project root (loaded automatically by `app.py`):
 
 | Variable | Purpose |
 |---|---|
@@ -139,7 +137,7 @@ Previous scans are stored locally in the browser (`localStorage`, max 20 entries
 | Charts | Chart.js 4 |
 | QR Scanning | html5-qrcode v2.3.8 |
 | Fonts | Inter · JetBrains Mono (Google Fonts) |
-| Deployment | Vercel (serverless via `api/index.py`) |
+| Deployment | Local Flask server (`python app.py`) |
 | Rate Limiting | In-process memory (default) or Redis |
 | AI Reports | Groq / OpenAI / Google Gemini (configurable) |
 
@@ -149,13 +147,10 @@ Previous scans are stored locally in the browser (`localStorage`, max 20 entries
 
 ```
 NEXUSSCAN/
-├── app.py                  # Flask entry-point (local dev)
-├── vercel.json             # Vercel serverless config
-├── .vercelignore           # Files excluded from Vercel deploys
-├── requirements.txt        # Python dependencies (local dev)
+├── app.py                  # Flask entry-point
+├── requirements.txt        # Python dependencies
+├── requirements-optional.txt  # Optional deps (e.g. redis for rate limiting)
 ├── api/
-│   ├── index.py            # Vercel serverless entry-point
-│   ├── requirements.txt    # Python dependencies (Vercel)
 │   ├── scanner.py          # Rule-based security checks + scan orchestrator
 │   ├── scoring.py          # Risk scoring, verdict and analysis logic
 │   ├── llm_explainer.py    # AI plain-English report layer
