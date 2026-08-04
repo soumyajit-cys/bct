@@ -17,17 +17,6 @@ Paste or scan any URL and NexusScan runs a full security audit in seconds:
 
 ---
 
-## Pages & Routes
-
-| Route | Purpose |
-|---|---|
-| `/` | Marketing landing page — features, how it works, call-to-action |
-| `/scan` | The scanner — paste a URL, scan a QR code, view the report |
-| `/analyze` | API endpoint (POST) — returns the scan result as JSON |
-| `/robots.txt`, `/sitemap.xml` | SEO files |
-
----
-
 ## How to Use
 
 1. Run the app locally (see below) and open **http://localhost:5000**
@@ -42,7 +31,7 @@ Paste or scan any URL and NexusScan runs a full security audit in seconds:
 
 ```bash
 # 1. Clone and enter the project
-cd NEXUSSCAN-main
+cd BCT
 
 # 2. Create and activate a virtual environment (recommended)
 python3 -m venv venv
@@ -146,7 +135,7 @@ Previous scans are stored locally in the browser (`localStorage`, max 20 entries
 ## Project Structure
 
 ```
-NEXUSSCAN/
+BCT/
 ├── app.py                  # Flask entry-point
 ├── requirements.txt        # Python dependencies
 ├── requirements-optional.txt  # Optional deps (e.g. redis for rate limiting)

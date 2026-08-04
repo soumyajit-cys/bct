@@ -1,6 +1,0 @@
-# Optional dependencies — not required for the core scanner.
-#
-# redis: enables cross-instance rate limiting on Vercel.
-# Install only if you configure REDIS_URL. The app falls back to the
-# in-memory limiter when redis is unavailable.
-redis>=5.0.0
