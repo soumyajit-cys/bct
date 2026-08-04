@@ -28,9 +28,9 @@ Paste or scan any URL and NexusScan runs a full security audit in seconds:
 
 ---
 
-## How to Use (Deployed)
+## How to Use
 
-1. Visit **[nexusscan.vercel.app](https://nexusscan.vercel.app/)**
+1. Run the app locally (see below) and open **http://localhost:5000**
 2. Click **Start Scanning** (or navigate to `/scan`)
 3. Enter the URL you want to scan, or use the QR scanner to scan a code
 4. Click **Scan**
