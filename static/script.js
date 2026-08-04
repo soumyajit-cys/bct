@@ -13,6 +13,7 @@ const CONFIG = {
   API_ENDPOINT:   '/analyze',
   HISTORY_KEY:     'nexusscan_history',
   HISTORY_MAX:     20,
+  FETCH_TIMEOUT:   60000,
 };
 
 
@@ -104,7 +105,10 @@ const Scanner = (() => {
       History.add({ url, data, ts: Date.now() });
 
     } catch (err) {
-      showError('Scan failed — check the URL and try again.');
+      const message = err && /timed out/i.test(err.message)
+        ? err.message
+        : 'Scan failed — check the URL and try again.';
+      showError(message);
       console.error('[NexusScan]', err);
     } finally {
       scanning = false;
@@ -112,13 +116,25 @@ const Scanner = (() => {
   }
 
   async function fetchScan(url) {
-    const res = await fetch(CONFIG.API_ENDPOINT, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ url }),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.json();
+    const controller = new AbortController();
+    const timeoutId  = setTimeout(() => controller.abort(), CONFIG.FETCH_TIMEOUT);
+    try {
+      const res = await fetch(CONFIG.API_ENDPOINT, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ url }),
+        signal:  controller.signal,
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    } catch (err) {
+      if (controller.signal.aborted) {
+        throw new Error('Scan timed out — the backend is taking too long.');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   async function fakeProgress() {
