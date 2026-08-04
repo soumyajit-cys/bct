@@ -50,6 +50,7 @@ from .scanner       import scan_website
 from .scoring       import calculate_risk_score, verdict_for_score, generate_analysis, linkify_findings
 from .rate_limiter  import rate_limit_check
 from .llm_explainer import generate_explanation
+from .log_utils     import sanitize_url_for_log
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -148,7 +149,7 @@ def analyze_url():
         if len(url) > 2048:
             return jsonify({"error": "URL too long"}), 400
 
-        logger.info("Scan request | url=%s", url)
+        logger.info("Scan request | url=%s", sanitize_url_for_log(url))
         start_time = time.time()
         findings   = scan_website(url)
         elapsed    = time.time() - start_time
@@ -173,7 +174,7 @@ def analyze_url():
 
         logger.info(
             "Scan complete | url=%s | score=%d | verdict=%s | elapsed=%.2fs | llm_fallback=%s | fallback_reason=%s",
-            url, risk_score, verdict, elapsed, ai_report.get("is_fallback", True), ai_report.get("fallback_reason"),
+            sanitize_url_for_log(url), risk_score, verdict, elapsed, ai_report.get("is_fallback", True), ai_report.get("fallback_reason"),
         )
 
         return jsonify(
@@ -192,7 +193,7 @@ def analyze_url():
 
     except Exception:
         # Log full traceback server-side; return generic message to client
-        logger.exception("Unhandled error during scan of %s", url if "url" in dir() else "unknown")
+        logger.exception("Unhandled error during scan of %s", sanitize_url_for_log(url if "url" in dir() else None))
         return (
             jsonify(
                 {
