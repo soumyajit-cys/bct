@@ -842,6 +842,7 @@ function getTier(score) {
   if (score < 25) return 'safe';
   if (score < 50) return 'low';
   if (score < 75) return 'medium';
+  if (score < 90) return 'high';
   return 'critical';
 }
 
