@@ -43,6 +43,7 @@ const Scanner = (() => {
       findingsBadge:   document.getElementById('findingsBadge'),
       errorText:       document.getElementById('errorText'),
       copyBtn:         document.getElementById('copyResultBtn'),
+      shareBtn:        document.getElementById('shareResultBtn'),
       scanAnotherBtn:  document.getElementById('scanAnotherBtn'),
       // AI Report
       aiReportBlock:   document.getElementById('aiReportBlock'),
@@ -59,6 +60,7 @@ const Scanner = (() => {
     els.analyzeBtn.addEventListener('click', startScan);
     els.urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') startScan(); });
     els.copyBtn.addEventListener('click', copyReport);
+    els.shareBtn.addEventListener('click', shareReport);
     els.scanAnotherBtn.addEventListener('click', resetToIdle);
 
     document.querySelectorAll('.hint-btn').forEach(btn => {
@@ -398,11 +400,7 @@ const Scanner = (() => {
     return 'AI explanation unavailable — showing rule-based summary.';
   }
 
-  /* ── Copy Report ── */
-  function copyReport() {
-    const d = els.resultContainer._data;
-    if (!d) return;
-
+  function buildReportText(d) {
     const ai = d.data.ai_report;
     const aiLines = [];
     if (ai) {
@@ -418,7 +416,7 @@ const Scanner = (() => {
       .map(f => (typeof f === 'object' && f !== null) ? (f.text || '') : String(f))
       .join('\n');
 
-    const text = [
+    return [
       `NexusScan Report`,
       `URL: ${d.url}`,
       `Verdict: ${d.verdict}`,
@@ -429,12 +427,55 @@ const Scanner = (() => {
       `── Technical Findings ──`,
       technicalText,
     ].join('\n');
+  }
 
-    navigator.clipboard.writeText(text).then(() => {
-      const orig = els.copyBtn.innerHTML;
-      els.copyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Copied!';
-      setTimeout(() => { els.copyBtn.innerHTML = orig; }, 2000);
-    });
+  /* ── Copy Report ── */
+  function copyReport() {
+    const d = els.resultContainer._data;
+    if (!d) return;
+
+    const text = buildReportText(d);
+    navigator.clipboard.writeText(text)
+      .then(() => setActionFeedback(els.copyBtn, 'Copied!'))
+      .catch(() => setActionFeedback(els.copyBtn, 'Copy failed'));
+  }
+
+  /* ── Share Report ── */
+  function shareReport() {
+    const d = els.resultContainer._data;
+    if (!d) return;
+
+    const text = buildReportText(d);
+    const shareData = {
+      title: `NexusScan report for ${d.url}`,
+      text,
+      url: d.url,
+    };
+
+    if (typeof navigator.share === 'function' && navigator.canShare && navigator.canShare(shareData)) {
+      navigator.share(shareData)
+        .then(() => setActionFeedback(els.shareBtn, 'Shared!'))
+        .catch(() => fallbackShare(text));
+    } else {
+      fallbackShare(text);
+    }
+  }
+
+  function fallbackShare(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(() => setActionFeedback(els.shareBtn, 'Copied!'))
+        .catch(() => setActionFeedback(els.shareBtn, 'Share unavailable'));
+    } else {
+      setActionFeedback(els.shareBtn, 'Share unavailable');
+    }
+  }
+
+  function setActionFeedback(btn, label) {
+    if (!btn) return;
+    const original = btn.textContent.trim();
+    btn.textContent = label;
+    setTimeout(() => { btn.textContent = original; }, 2000);
   }
 
   /* ── UI Helpers ── */
