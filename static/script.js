@@ -154,7 +154,7 @@ const Scanner = (() => {
     animateCounter(els.riskScore, 0, score, 1000);
     els.issueCount.textContent = data.technical_details ? data.technical_details.length : 0;
     els.scanTime.textContent   = data.scan_time ?? '—';
-    els.confidence.textContent = getConfidence(score);
+    els.confidence.textContent = getConfidence(data.score_breakdown);
 
     // AI report
     renderAIReport(data.ai_report ?? null);
@@ -850,11 +850,13 @@ function getVerdictEmoji(tier) {
   return { safe: '✅', low: '🟡', medium: '🟠', high: '🔴', critical: '💀' }[tier] ?? '❓';
 }
 
-function getConfidence(score) {
-  if (score === 0) return 'High';
-  if (score < 20)  return 'High';
-  if (score < 50)  return 'Medium';
-  return 'High';
+function getConfidence(breakdown) {
+  const items = Array.isArray(breakdown) ? breakdown : [];
+  if (!items.length) return 'High';
+  const substantive = items.filter(it => (it.points ?? 0) >= 8).length;
+  if (substantive >= 2) return 'High';
+  if (substantive === 1) return 'Medium';
+  return 'Low';
 }
 
 function sanitize(str) {
