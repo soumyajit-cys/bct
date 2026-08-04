@@ -274,10 +274,14 @@ def check_common_misconfigurations(target_url: str) -> list[str]:
             logger.info("Directory listing found at %s", target_url)
 
         security_headers = {
-            "Strict-Transport-Security": "Missing HSTS header",
-            "Content-Security-Policy":   "Missing CSP header",
-            "X-Content-Type-Options":    "Missing X-Content-Type-Options header",
-            "X-Frame-Options":           "Missing X-Frame-Options header",
+            "Strict-Transport-Security":      "Missing HSTS header",
+            "Content-Security-Policy":        "Missing CSP header",
+            "X-Content-Type-Options":         "Missing X-Content-Type-Options header",
+            "X-Frame-Options":                "Missing X-Frame-Options header",
+            "Referrer-Policy":                "Missing Referrer-Policy header",
+            "Permissions-Policy":             "Missing Permissions-Policy header",
+            "Cross-Origin-Opener-Policy":     "Missing Cross-Origin-Opener-Policy header",
+            "Cross-Origin-Resource-Policy":   "Missing Cross-Origin-Resource-Policy header",
         }
         for header, message in security_headers.items():
             if header not in root_resp.headers:

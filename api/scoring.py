@@ -35,6 +35,10 @@ _SCORE_RULES: list[tuple[str, int, str]] = [
     ("Missing CSP",                5,     "Missing CSP header"),
     ("Missing X-Content-Type",     3,     "Missing X-Content-Type-Options"),
     ("Missing X-Frame",            3,     "Missing X-Frame-Options"),
+    ("Missing Referrer-Policy",    2,     "Missing Referrer-Policy header"),
+    ("Missing Permissions-Policy", 2,     "Missing Permissions-Policy header"),
+    ("Missing Cross-Origin-Opener-Policy", 2, "Missing Cross-Origin-Opener-Policy header"),
+    ("Missing Cross-Origin-Resource-Policy", 2, "Missing Cross-Origin-Resource-Policy header"),
     ("credentials",               20,     "Exposed credentials"),
     ("Exposed admin panel",       10,     "Exposed admin panel"),
     # ---- URL phishing heuristics (ported from the frontend analyzer) ----
