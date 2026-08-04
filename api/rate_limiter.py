@@ -42,8 +42,8 @@ _lock: Lock = Lock()
 _windows: dict[str, list[tuple[float, int]]] = defaultdict(list)
 
 
-def _check_in_memory(ip: str, limit: int) -> bool:
-    """Return True if the request is within the rate limit."""
+def _check_in_memory(ip: str, limit: int) -> tuple[bool, int]:
+    """Return (allowed, current_count) within the sliding 60s window."""
     now = time.time()
     window_start = now - 60.0
 
@@ -53,10 +53,10 @@ def _check_in_memory(ip: str, limit: int) -> bool:
         count = sum(c for _, c in _windows[ip])
 
         if count >= limit:
-            return False
+            return False, count
 
         _windows[ip].append((now, 1))
-        return True
+        return True, count + 1
 
 
 # ---------------------------------------------------------------------------
@@ -90,8 +90,8 @@ def _init_redis() -> None:
 _init_redis()
 
 
-def _check_redis(ip: str, limit: int) -> bool:
-    """Return True if allowed; uses a Redis sliding-window counter."""
+def _check_redis(ip: str, limit: int) -> tuple[bool, int]:
+    """Return (allowed, current_count); uses a Redis sliding-window counter."""
     if not _redis_ok or _redis_client is None:
         return _check_in_memory(ip, limit)
     try:
@@ -101,7 +101,7 @@ def _check_redis(ip: str, limit: int) -> bool:
         pipe.expire(key, 60)
         result = pipe.execute()
         count = result[0]
-        return count <= limit
+        return count <= limit, count
     except Exception as exc:
         logger.warning("Redis rate-limit check failed: %s — falling back to memory", exc)
         return _check_in_memory(ip, limit)
@@ -132,18 +132,30 @@ def get_remote_ip() -> str:
     return request.remote_addr or "unknown"
 
 
-def rate_limit_check() -> tuple[bool, object]:
+def rate_limit_check() -> tuple[bool, object, dict[str, str]]:
     """
     Check whether the current request is within the configured rate limit.
 
     Returns:
-        (allowed: bool, error_response | None)
+        (allowed: bool, error_response | None, headers: dict)
 
-        If allowed=True, error_response is None.
-        If allowed=False, error_response is a Flask JSON response with HTTP 429.
+        If allowed=True, error_response is None and headers contains the
+        standard rate-limit headers (X-RateLimit-Limit / Remaining / Reset)
+        that the caller should attach to its response so clients can
+        self-regulate.
+        If allowed=False, error_response is a Flask JSON response with HTTP
+        429 (already carrying the rate-limit headers).
     """
     ip = get_remote_ip()
-    allowed = _check_redis(ip, _RPM) if _redis_ok else _check_in_memory(ip, _RPM)
+    allowed, count = _check_redis(ip, _RPM) if _redis_ok else _check_in_memory(ip, _RPM)
+
+    remaining = max(0, _RPM - count)
+    reset_at  = int(time.time() // 60 * 60 + 60)
+    headers = {
+        "X-RateLimit-Limit":     str(_RPM),
+        "X-RateLimit-Remaining": str(remaining),
+        "X-RateLimit-Reset":     str(reset_at),
+    }
 
     if not allowed:
         logger.warning("Rate limit exceeded | ip=%s | limit=%d rpm", ip, _RPM)
@@ -155,6 +167,7 @@ def rate_limit_check() -> tuple[bool, object]:
         )
         resp.status_code = 429
         resp.headers["Retry-After"] = "60"
-        return False, resp
+        resp.headers.update(headers)
+        return False, resp, headers
 
-    return True, None
+    return True, None, headers
