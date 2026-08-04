@@ -159,15 +159,14 @@ def analyze_phishing_heuristics(raw_url: str) -> list[str]:
 
     # ---- Typosquat detection ----
     normalized_label = re.sub(r"^www\.", "", first_label)
-    for brand in KNOWN_BRANDS:
-        if normalized_label == brand:
-            continue
-        dist = _levenshtein(normalized_label, brand)
-        max_len = max(len(normalized_label), len(brand))
-        similarity = 1 - (dist / max_len) if max_len else 0
-        if dist <= 2 and similarity >= 0.7:
-            findings.append(f"Hostname resembles a known brand ({brand})")
-            break
+    if normalized_label not in KNOWN_BRANDS:
+        for brand in KNOWN_BRANDS:
+            dist = _levenshtein(normalized_label, brand)
+            max_len = max(len(normalized_label), len(brand))
+            similarity = 1 - (dist / max_len) if max_len else 0
+            if dist <= 2 and similarity >= 0.7:
+                findings.append(f"Hostname resembles a known brand ({brand})")
+                break
 
     # ---- Entropy check ----
     if len(first_label) >= 8 and _entropy(first_label) >= 3.8:
