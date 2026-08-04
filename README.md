@@ -2,8 +2,6 @@
 
 A Flask-based web security scanner that analyses any URL for exposed files, security misconfigurations, and phishing signals — then explains the results in plain English using an AI report layer.
 
-**Live Application → [nexusscan.vercel.app](https://nexusscan.vercel.app/)**
-
 ---
 
 ## What It Does
