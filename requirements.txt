@@ -1,6 +1,3 @@
 Flask==2.3.3
 Werkzeug>=2.3.0
 requests==2.31.0
-
-# optional: enables cross-instance rate limiting on Vercel
-redis>=5.0.0    
