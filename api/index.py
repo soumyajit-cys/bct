@@ -135,7 +135,7 @@ def analyze_url():
         return "", 204
 
     # ── Rate limiting ────────────────────────────────────────────────────────
-    allowed, rate_resp = rate_limit_check()
+    allowed, rate_resp, rate_headers = rate_limit_check()
     if not allowed:
         return rate_resp  # type: ignore[return-value]
 
@@ -177,7 +177,7 @@ def analyze_url():
             sanitize_url_for_log(url), risk_score, verdict, elapsed, ai_report.get("is_fallback", True), ai_report.get("fallback_reason"),
         )
 
-        return jsonify(
+        resp = jsonify(
             {
                 "is_risky":          is_risky,
                 "risk_score":        risk_score,
@@ -190,6 +190,8 @@ def analyze_url():
                 "ai_report":         ai_report,
             }
         )
+        resp.headers.update(rate_headers)
+        return resp
 
     except Exception:
         # Log full traceback server-side; return generic message to client
