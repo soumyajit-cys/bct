@@ -1,4 +1,4 @@
-# NexusScan
+# ThreatScan
 
 A Flask-based web security scanner that analyses any URL for exposed files, security misconfigurations, and phishing signals — then explains the results in plain English using an AI report layer.
 
@@ -6,7 +6,7 @@ A Flask-based web security scanner that analyses any URL for exposed files, secu
 
 ## What It Does
 
-Paste or scan any URL and NexusScan runs a full security audit in seconds:
+Paste or scan any URL and ThreatScan runs a full security audit in seconds:
 
 - Checks for exposed sensitive files (`.env`, `.git`, `wp-config.php`, etc.)
 - Runs URL phishing heuristics (typosquatting, URL shorteners, suspicious TLDs, raw-IP hosts, keyword traps)

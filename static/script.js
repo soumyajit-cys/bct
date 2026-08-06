@@ -1,5 +1,5 @@
 /**
- * NexusScan · script.js
+ * ThreatScan · script.js
  * Sections: Config | Scanner | QRScanner | History | Utils | Init
  *
  * Preserved 100%: All scan logic, API endpoints, QR scanning, history storage,
@@ -11,7 +11,7 @@
 /* ═══════════════════════ CONFIG ═══════════════════════ */
 const CONFIG = {
   API_ENDPOINT:   '/analyze',
-  HISTORY_KEY:     'nexusscan_history',
+  HISTORY_KEY:     'threatscan_history',
   HISTORY_MAX:     20,
   FETCH_TIMEOUT:   60000,
 };
@@ -111,7 +111,7 @@ const Scanner = (() => {
         ? err.message
         : 'Scan failed — check the URL and try again.';
       showError(message);
-      console.error('[NexusScan]', err);
+      console.error('[ThreatScan]', err);
     } finally {
       scanning = false;
     }
@@ -417,7 +417,7 @@ const Scanner = (() => {
       .join('\n');
 
     return [
-      `NexusScan Report`,
+      `ThreatScan Report`,
       `URL: ${d.url}`,
       `Verdict: ${d.verdict}`,
       `Risk Score: ${d.score}`,
@@ -447,7 +447,7 @@ const Scanner = (() => {
 
     const text = buildReportText(d);
     const shareData = {
-      title: `NexusScan report for ${d.url}`,
+      title: `ThreatScan report for ${d.url}`,
       text,
       url: d.url,
     };

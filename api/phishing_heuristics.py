@@ -1,7 +1,7 @@
 """
 api/phishing_heuristics.py
 ==========================
-Rule-based URL phishing heuristics for NexusScan.
+Rule-based URL phishing heuristics for ThreatScan.
 
 Ported from the frontend analyzer.  Runs purely on the URL string — no network
 requests.  Each check returns a human-readable finding string that the shared
@@ -30,7 +30,7 @@ import math
 import re
 from urllib.parse import urlparse
 
-logger = logging.getLogger("nexusscan.phishing_heuristics")
+logger = logging.getLogger("threatscan.phishing_heuristics")
 
 # ---------------------------------------------------------------------------
 # Reference lists

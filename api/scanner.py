@@ -37,7 +37,7 @@ try:
 except ImportError:
     from url_validator import validate_url_for_request, resolve_and_validate_url
 
-logger = logging.getLogger("nexusscan.scanner")
+logger = logging.getLogger("threatscan.scanner")
 
 # ---------------------------------------------------------------------------
 # Configuration

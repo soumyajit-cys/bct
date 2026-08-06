@@ -1,5 +1,5 @@
 """
-NexusScan – Flask Application (local development server)
+ThreatScan – Flask Application (local development server)
 =========================================================
 Serves the frontend and the /analyze threat-scanning endpoint.
 """
@@ -63,7 +63,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s — %(message)s",
 )
-logger = logging.getLogger("nexusscan.app")
+logger = logging.getLogger("threatscan.app")
 
 # ---------------------------------------------------------------------------
 # App setup

@@ -44,7 +44,7 @@ import os
 import socket
 from urllib.parse import urlparse
 
-logger = logging.getLogger("nexusscan.url_validator")
+logger = logging.getLogger("threatscan.url_validator")
 
 # ---------------------------------------------------------------------------
 # Environment flag

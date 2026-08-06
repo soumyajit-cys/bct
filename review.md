@@ -1,4 +1,4 @@
-# NexusScan — Full Code Audit Report
+# ThreatScan — Full Code Audit Report
 
 **Date:** 2026-08-04
 **Scope:** All source files in `bct/`

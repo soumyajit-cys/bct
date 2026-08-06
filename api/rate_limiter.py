@@ -25,7 +25,7 @@ from threading import Lock
 
 from flask import request, jsonify
 
-logger = logging.getLogger("nexusscan.rate_limiter")
+logger = logging.getLogger("threatscan.rate_limiter")
 
 # ---------------------------------------------------------------------------
 # Configuration

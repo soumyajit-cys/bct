@@ -1,7 +1,7 @@
 """
 api/llm_explainer.py
 ====================
-LLM-based plain-English explanation layer for NexusScan.
+LLM-based plain-English explanation layer for ThreatScan.
 
 PURPOSE
 -------
@@ -46,7 +46,7 @@ from urllib.parse import urlparse
 
 import requests
 
-logger = logging.getLogger("nexusscan.llm_explainer")
+logger = logging.getLogger("threatscan.llm_explainer")
 
 # ---------------------------------------------------------------------------
 # Configuration defaults
