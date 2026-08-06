@@ -170,7 +170,13 @@ const Scanner = (() => {
 
     // Stats
     animateCounter(els.riskScore, 0, score, 1000);
-    els.issueCount.textContent = data.technical_details ? data.technical_details.length : 0;
+    
+    // Exclude informational zero-point findings from the issue count
+    const actualIssues = data.score_breakdown 
+      ? data.score_breakdown.filter(b => b.points > 0).length 
+      : 0;
+
+    els.issueCount.textContent = actualIssues;
     els.scanTime.textContent   = data.scan_time ?? '—';
     els.confidence.textContent = getConfidence(data.score_breakdown);
 
@@ -181,8 +187,7 @@ const Scanner = (() => {
     renderFindings(data.technical_details ?? [], score);
 
     // Findings badge
-    const count = data.technical_details ? data.technical_details.length : 0;
-    els.findingsBadge.textContent = `${count} finding${count !== 1 ? 's' : ''}`;
+    els.findingsBadge.textContent = `${actualIssues} finding${actualIssues !== 1 ? 's' : ''}`;
 
     // Score breakdown
     renderScoreBreakdown(data.score_breakdown ?? []);

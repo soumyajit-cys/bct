@@ -1,30 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>ThreatScan – Free URL Security Scanner &amp; Threat Analyzer</title>
-  <meta name="description" content="ThreatScan instantly analyzes any URL for exposed files, security misconfigurations, and phishing signals. Free cybersecurity threat intelligence in seconds." />
+  <meta name="description"
+    content="ThreatScan instantly analyzes any URL for exposed files, security misconfigurations, and phishing signals. Free cybersecurity threat intelligence in seconds." />
   <link rel="canonical" href="http://localhost:5000/" />
 
-  <meta property="og:type"        content="website" />
-  <meta property="og:url"         content="http://localhost:5000/" />
-  <meta property="og:title"       content="ThreatScan – Free URL Security Scanner" />
-  <meta property="og:description" content="Instantly scan any URL for exposed files, misconfigurations, and phishing signals. Real threat intelligence, zero cost." />
-  <meta property="og:image"       content="http://localhost:5000/static/og-image.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="http://localhost:5000/" />
+  <meta property="og:title" content="ThreatScan – Free URL Security Scanner" />
+  <meta property="og:description"
+    content="Instantly scan any URL for exposed files, misconfigurations, and phishing signals. Real threat intelligence, zero cost." />
+  <meta property="og:image" content="http://localhost:5000/static/og-image.png" />
 
-  <meta name="twitter:card"        content="summary_large_image" />
-  <meta name="twitter:title"       content="ThreatScan – Free URL Security Scanner" />
-  <meta name="twitter:description" content="Instantly scan any URL for exposed files, misconfigurations, and phishing signals. Real threat intelligence, zero cost." />
-  <meta name="twitter:image"       content="http://localhost:5000/static/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="ThreatScan – Free URL Security Scanner" />
+  <meta name="twitter:description"
+    content="Instantly scan any URL for exposed files, misconfigurations, and phishing signals. Real threat intelligence, zero cost." />
+  <meta name="twitter:image" content="http://localhost:5000/static/og-image.png" />
 
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
 
   <!-- Fonts: Inter (UI) + JetBrains Mono (code) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
 
   <!-- Styles -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
@@ -49,6 +56,7 @@
   }
   </script>
 </head>
+
 <body>
 
   <!-- ═══════════════════════ HEADER ═══════════════════════ -->
@@ -57,13 +65,12 @@
       <div class="logo-mark" role="img" aria-label="ThreatScan logo">
         <div class="logo-icon-wrap">
           <svg width="22" height="22" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-            <path d="M14 2L3 7v7c0 6.1 4.7 11.8 11 13 6.3-1.2 11-6.9 11-13V7L14 2z"
-                  fill="none" stroke="#2563eb" stroke-width="1.8"/>
-            <path d="M9 14l3 3 7-7" stroke="#2563eb" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M14 2L3 7v7c0 6.1 4.7 11.8 11 13 6.3-1.2 11-6.9 11-13V7L14 2z" fill="none" stroke="#2563eb"
+              stroke-width="1.8" />
+            <path d="M9 14l3 3 7-7" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </div>
-        <span class="logo-text">NEXUS<span class="logo-accent">SCAN</span></span>
+        <span class="logo-text">THREAT<span class="logo-accent">SCAN</span></span>
       </div>
 
       <nav class="header-nav" aria-label="Main navigation">
@@ -72,8 +79,8 @@
         <a href="/scan" class="btn-scan btn-scan--sm">
           <span>Scan a URL</span>
           <svg class="btn-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2"
-                  stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+              stroke-linejoin="round" />
           </svg>
         </a>
       </nav>
@@ -105,8 +112,8 @@
           <a href="/scan" class="btn-scan btn-scan--lg">
             <span>Start Scanning</span>
             <svg class="btn-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2"
-                    stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round" />
             </svg>
           </a>
           <a href="#features" class="btn-ghost-landing">See what's checked</a>
@@ -130,62 +137,75 @@
           <div class="feature-card">
             <div class="feature-icon feature-icon--red">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                <path d="M14 2v6h6M8 17v-3M12 17v-5M16 17v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor"
+                  stroke-width="1.8" stroke-linejoin="round" />
+                <path d="M14 2v6h6M8 17v-3M12 17v-5M16 17v-2" stroke="currentColor" stroke-width="1.8"
+                  stroke-linecap="round" />
               </svg>
             </div>
             <h3>Exposed Sensitive Files</h3>
-            <p>Probes common leak points — <code>/.env</code>, <code>/.git/HEAD</code>, <code>/wp-config.php</code>, backup archives and more.</p>
+            <p>Probes common leak points — <code>/.env</code>, <code>/.git/HEAD</code>, <code>/wp-config.php</code>,
+              backup archives and more.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon feature-icon--cyan">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/>
-                <path d="M8 12h8M8 8h8M8 16h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8" />
+                <path d="M8 12h8M8 8h8M8 16h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
               </svg>
             </div>
             <h3>Security Header Audit</h3>
-            <p>Checks for HSTS, Content-Security-Policy, X-Frame-Options and X-Content-Type-Options — the headers that stop clickjacking and XSS.</p>
+            <p>Checks for HSTS, Content-Security-Policy, X-Frame-Options and X-Content-Type-Options — the headers that
+              stop clickjacking and XSS.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon feature-icon--green">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/>
-                <path d="M9 12l2 2 4-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" />
+                <path d="M9 12l2 2 4-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                  stroke-linejoin="round" />
               </svg>
             </div>
             <h3>HTTPS Enforcement</h3>
-            <p>Verifies the site enforces HTTPS — detects missing redirects and unreachable secure versions of the target.</p>
+            <p>Verifies the site enforces HTTPS — detects missing redirects and unreachable secure versions of the
+              target.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon feature-icon--violet">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M12 2L3 7v7c0 6.1 4.7 11.8 11 13 6.3-1.2 11-6.9 11-13V7L12 2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-                <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                <path d="M12 2L3 7v7c0 6.1 4.7 11.8 11 13 6.3-1.2 11-6.9 11-13V7L12 2z" stroke="currentColor"
+                  stroke-width="1.8" stroke-linejoin="round" />
+                <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
               </svg>
             </div>
             <h3>Misconfiguration Detection</h3>
-            <p>Flags open directory listings and dangerous HTTP methods like TRACE that enable cross-site tracing attacks.</p>
+            <p>Flags open directory listings and dangerous HTTP methods like TRACE that enable cross-site tracing
+              attacks.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon feature-icon--cyan">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+                <path
+                  d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                  stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
               </svg>
             </div>
             <h3>Plain-English AI Report</h3>
-            <p>Results are explained in simple language — why the site was flagged and what to do next. No jargon required.</p>
+            <p>Results are explained in simple language — why the site was flagged and what to do next. No jargon
+              required.</p>
           </div>
 
           <div class="feature-card">
             <div class="feature-icon feature-icon--green">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.58a2 2 0 0 1 0 2.83z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M7 7h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.58a2 2 0 0 1 0 2.83z"
+                  stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                <path d="M7 7h.01" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                  stroke-linejoin="round" />
               </svg>
             </div>
             <h3>Free to Use</h3>
@@ -236,8 +256,8 @@
           <a href="/scan" class="btn-scan btn-scan--lg">
             <span>Open the Scanner</span>
             <svg class="btn-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2"
-                    stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round" />
             </svg>
           </a>
         </div>
@@ -251,17 +271,18 @@
     <div class="footer-inner">
       <div class="footer-logo">
         <svg width="18" height="18" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-          <path d="M14 2L3 7v7c0 6.1 4.7 11.8 11 13 6.3-1.2 11-6.9 11-13V7L14 2z"
-                fill="none" stroke="#2563eb" stroke-width="1.5"/>
-          <path d="M9 14l3 3 7-7" stroke="#2563eb" stroke-width="1.8"
-                stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M14 2L3 7v7c0 6.1 4.7 11.8 11 13 6.3-1.2 11-6.9 11-13V7L14 2z" fill="none" stroke="#2563eb"
+            stroke-width="1.5" />
+          <path d="M9 14l3 3 7-7" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
         <span>ThreatScan</span>
       </div>
       <p class="footer-copy">Built for the security community · Open source · No tracking</p>
-      <p class="footer-disclaimer">ThreatScan is a security research tool. Use responsibly and only on URLs you are authorized to scan.</p>
+      <p class="footer-disclaimer">ThreatScan is a security research tool. Use responsibly and only on URLs you are
+        authorized to scan.</p>
     </div>
   </footer>
 
 </body>
+
 </html>
