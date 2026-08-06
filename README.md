@@ -52,7 +52,7 @@ Create a `.env` file in the project root (loaded automatically by `app.py`):
 
 | Variable | Purpose |
 |---|---|
-| `LLM_PROVIDER` | AI report provider — `groq` (default), `openai`, or `gemini` |
+| `LLM_PROVIDER` | AI report provider — `groq` (default) or `gemini` |
 | `LLM_API_KEY` | API key for the chosen LLM provider |
 | `LLM_MODEL` | Optional model override for the provider |
 | `ALLOWED_ORIGIN` | CORS origin for `/analyze` (defaults to `*`) |
@@ -87,7 +87,7 @@ Every finding is weighted by severity and summed into a 0–100 risk score:
 The report includes a score breakdown showing exactly which findings contributed points.
 
 ### AI Plain-English Report
-An optional LLM layer (supporting **Groq**, **OpenAI**, and **Gemini**) translates the raw scan findings into a structured report with:
+An optional LLM layer (supporting **Groq** and **Gemini**) translates the raw scan findings into a structured report with:
 - Executive summary (for non-technical readers)
 - Why the site was flagged
 - Recommended actions
@@ -128,7 +128,7 @@ Previous scans are stored locally in the browser (`localStorage`, max 20 entries
 | Fonts | Inter · JetBrains Mono (Google Fonts) |
 | Deployment | Local Flask server (`python app.py`) |
 | Rate Limiting | In-process memory (default) or Redis |
-| AI Reports | Groq / OpenAI / Google Gemini (configurable) |
+| AI Reports | Groq / Google Gemini (configurable) |
 
 ---
 

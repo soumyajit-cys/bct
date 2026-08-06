@@ -22,13 +22,12 @@ DESIGN RULES (do not violate)
 
 SUPPORTED PROVIDERS
 -------------------
-   groq   – free tier, OpenAI-compatible, very fast   → LLM_PROVIDER=groq
-   openai – standard OpenAI chat completions           → LLM_PROVIDER=openai
+   groq   – free tier, very fast                      → LLM_PROVIDER=groq
    gemini – Google Gemini REST API, free tier          → LLM_PROVIDER=gemini
 
 ENVIRONMENT VARIABLES (see .env for full docs)
 ----------------------------------------------
-   LLM_PROVIDER   – "groq" | "openai" | "gemini"  (default: "groq")
+   LLM_PROVIDER   – "groq" | "gemini"  (default: "groq")
    LLM_API_KEY    – API key for the chosen provider (required to enable LLM)
    LLM_MODEL      – override the default model for the provider (optional)
    LLM_TIMEOUT    – HTTP timeout in seconds            (default: 12)
@@ -223,7 +222,7 @@ def _openai_compatible(
     api_key: str,
     timeout: int,
 ) -> str:
-    """Call any OpenAI-compatible /chat/completions endpoint."""
+    """Call any compatible /chat/completions endpoint."""
     resp = requests.post(
         f"{base_url}/chat/completions",
         headers={
